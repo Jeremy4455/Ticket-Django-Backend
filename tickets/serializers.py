@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .models import User
+from .models import User, Ticket
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -33,11 +33,26 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             credentials['username'] = user_input
 
         data = super().validate(credentials)
-        return data
+        # 返回与前端一致的结构：仅一个 token + user 对象
+        user_data = UserOutSerializer(self.user).data
+        return {
+            'token': data['access'],
+            'user': user_data
+        }
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+
+# --- Users ---
+class UserOutSerializer(serializers.ModelSerializer):
+    fullName = serializers.CharField(source='full_name', required=False, allow_null=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'fullName', 'email', 'role']
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -54,3 +69,68 @@ class UserSerializer(serializers.ModelSerializer):
             role=validated_data.get('role', 'TESTER')
         )
         return user
+
+
+# --- Tickets ---
+class UserIdOrNestedField(serializers.PrimaryKeyRelatedField):
+    def to_internal_value(self, data):
+        # 支持 {id: "..."} 或 "..."（UUID字符串）
+        if isinstance(data, dict):
+            data = data.get('id')
+        return super().to_internal_value(data)
+
+
+class TicketSerializer(serializers.ModelSerializer):
+    submitter = UserOutSerializer(read_only=True)
+    assignee = UserOutSerializer(read_only=True)
+    qa_reviewer = UserOutSerializer(read_only=True)
+    regressor = UserOutSerializer(read_only=True)
+
+    class Meta:
+        model = Ticket
+        fields = [
+            'id', 'title', 'description',
+            'software_name', 'software_version', 'discovered_at',
+            'severity', 'module', 'current_status',
+            'submitter', 'assignee', 'qa_reviewer', 'regressor',
+            'created_at', 'updated_at'
+        ]
+
+
+class TicketCreateSerializer(serializers.ModelSerializer):
+    assignee = UserIdOrNestedField(queryset=User.objects.all(), required=False, allow_null=True)
+
+    class Meta:
+        model = Ticket
+        fields = [
+            'title', 'description',
+            'software_name', 'software_version', 'discovered_at',
+            'severity', 'module', 'assignee'
+        ]
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        submitter = request.user if request and request.user.is_authenticated else None
+        # 若未提供 discovered_at，则使用当前时间
+        if 'discovered_at' not in validated_data or validated_data['discovered_at'] is None:
+            from django.utils import timezone
+            validated_data['discovered_at'] = timezone.now()
+        ticket = Ticket.objects.create(
+            current_status='OPEN',
+            submitter=submitter,
+            **validated_data
+        )
+        return ticket
+
+
+class DevReportSerializer(serializers.Serializer):
+    report = serializers.JSONField(required=False)
+
+
+class QAReviewSerializer(serializers.Serializer):
+    agree_to_release = serializers.BooleanField()
+    designated_tester = UserIdOrNestedField(queryset=User.objects.all(), required=False, allow_null=True)
+
+
+class RegressionSerializer(serializers.Serializer):
+    passed = serializers.BooleanField()
