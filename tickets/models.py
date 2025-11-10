@@ -56,9 +56,12 @@ class Ticket(models.Model):
     current_status = models.CharField(max_length=32, choices=TICKET_STATUS_CHOICES, default='OPEN', db_index=True)
 
     submitter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='submitted_tickets')
-    assignee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name='assigned_tickets', null=True, blank=True)
-    qa_reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name='qa_reviewed_tickets', null=True, blank=True)
-    regressor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name='regressed_tickets', null=True, blank=True)
+    assignee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name='assigned_tickets',
+                                 null=True, blank=True)
+    qa_reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                    related_name='qa_reviewed_tickets', null=True, blank=True)
+    regressor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name='regressed_tickets',
+                                  null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -72,3 +75,26 @@ class Ticket(models.Model):
             models.Index(fields=['assignee']),
             models.Index(fields=['submitter']),
         ]
+
+
+class QAReview(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='qa_reviews')
+    comment = models.TextField(blank=True)
+    agree_to_release = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    designated_tester = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='designated_reviews',
+        null=True,
+        blank=True,
+    )
+    release_qa = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='released_qa_reviews',
+        null=True,
+        blank=True,
+    )
