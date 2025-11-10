@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from .models import User, Ticket
+from .models import User, Ticket, QAReview
 from .serializers import (
     UserSerializer,
     UserOutSerializer,
@@ -30,7 +30,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class TicketViewSet(viewsets.ModelViewSet):
-    queryset = Ticket.objects.select_related('submitter', 'assignee', 'qa_reviewer', 'regressor').all()
+    queryset = Ticket.objects.select_related('submitter', 'assignee', 'qa_reviewer', 'regressor').prefetch_related('qa_reviews').all()
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
@@ -74,6 +74,16 @@ class TicketViewSet(viewsets.ModelViewSet):
         payload.is_valid(raise_exception=True)
         agree = payload.validated_data['agree_to_release']
         designated = payload.validated_data.get('designated_tester')
+        comment = payload.validated_data.get('comment', '')
+
+        # 持久化 QAReview 记录
+        QAReview.objects.create(
+            ticket=ticket,
+            release_qa=request.user,
+            agree_to_release=agree,
+            designated_tester=designated,
+            comment=comment,
+        )
 
         ticket.qa_reviewer = request.user
         if agree:

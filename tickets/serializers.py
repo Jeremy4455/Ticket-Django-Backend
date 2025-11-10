@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .models import User, Ticket
+from .models import User, Ticket, QAReview
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -85,6 +85,11 @@ class TicketSerializer(serializers.ModelSerializer):
     assignee = UserOutSerializer(read_only=True)
     qa_reviewer = UserOutSerializer(read_only=True)
     regressor = UserOutSerializer(read_only=True)
+    qa_reviews = serializers.SerializerMethodField(read_only=True)
+
+    def get_qa_reviews(self, obj):
+        qs = obj.qa_reviews.order_by('-created_at')
+        return QAReviewOutSerializer(qs, many=True).data
 
     class Meta:
         model = Ticket
@@ -92,7 +97,7 @@ class TicketSerializer(serializers.ModelSerializer):
             'id', 'title', 'description',
             'software_name', 'software_version', 'discovered_at',
             'severity', 'module', 'current_status',
-            'submitter', 'assignee', 'qa_reviewer', 'regressor',
+            'submitter', 'assignee', 'qa_reviewer', 'regressor', 'qa_reviews',
             'created_at', 'updated_at'
         ]
 
@@ -128,9 +133,19 @@ class DevReportSerializer(serializers.Serializer):
 
 
 class QAReviewSerializer(serializers.Serializer):
+    comment = serializers.CharField(required=False, allow_blank=True)
     agree_to_release = serializers.BooleanField()
     designated_tester = UserIdOrNestedField(queryset=User.objects.all(), required=False, allow_null=True)
 
 
 class RegressionSerializer(serializers.Serializer):
     passed = serializers.BooleanField()
+
+
+class QAReviewOutSerializer(serializers.ModelSerializer):
+    reviewer = UserOutSerializer(source='release_qa', read_only=True)
+    designatedTester = UserOutSerializer(source='designated_tester', read_only=True)
+
+    class Meta:
+        model = QAReview
+        fields = ['id', 'comment', 'agree_to_release', 'reviewer', 'designatedTester', 'created_at']
