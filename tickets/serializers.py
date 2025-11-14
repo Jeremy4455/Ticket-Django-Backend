@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .models import User, Ticket, QAReview
+from .models import User, Ticket, QAReview, DevReport
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -86,10 +86,15 @@ class TicketSerializer(serializers.ModelSerializer):
     qa_reviewer = UserOutSerializer(read_only=True)
     regressor = UserOutSerializer(read_only=True)
     qa_reviews = serializers.SerializerMethodField(read_only=True)
+    dev_reports = serializers.SerializerMethodField(read_only=True)
 
     def get_qa_reviews(self, obj):
         qs = obj.qa_reviews.order_by('-created_at')
         return QAReviewOutSerializer(qs, many=True).data
+
+    def get_dev_reports(self, obj):
+        qs = obj.dev_reports.order_by('-created_at')
+        return DevReportOutSerializer(qs, many=True).data
 
     class Meta:
         model = Ticket
@@ -97,7 +102,7 @@ class TicketSerializer(serializers.ModelSerializer):
             'id', 'title', 'description',
             'software_name', 'software_version', 'discovered_at',
             'severity', 'module', 'current_status',
-            'submitter', 'assignee', 'qa_reviewer', 'regressor', 'qa_reviews',
+            'submitter', 'assignee', 'qa_reviewer', 'regressor', 'qa_reviews', 'dev_reports',
             'created_at', 'updated_at'
         ]
 
@@ -129,7 +134,13 @@ class TicketCreateSerializer(serializers.ModelSerializer):
 
 
 class DevReportSerializer(serializers.Serializer):
-    report = serializers.JSONField(required=False)
+    issue_type = serializers.CharField(required=False, allow_blank=True)
+    root_cause = serializers.CharField(required=False, allow_blank=True)
+    self_test_report = serializers.CharField(required=False, allow_blank=True)
+    self_test_screenshots = serializers.FileField(required=False, allow_null=True)
+    regression_version = serializers.CharField(required=False, allow_blank=True)
+    module = serializers.CharField(required=False, allow_blank=True)
+    github_pr_url = serializers.URLField(required=False, allow_null=True)
 
 
 class QAReviewSerializer(serializers.Serializer):
@@ -149,3 +160,14 @@ class QAReviewOutSerializer(serializers.ModelSerializer):
     class Meta:
         model = QAReview
         fields = ['id', 'comment', 'agree_to_release', 'reviewer', 'designatedTester', 'created_at']
+
+
+class DevReportOutSerializer(serializers.ModelSerializer):
+    assignedDeveloper = UserOutSerializer(source='assigned_developer', read_only=True)
+
+    class Meta:
+        model = DevReport
+        fields = [
+            'id', 'issue_type', 'root_cause', 'self_test_report', 'self_test_screenshots',
+            'regression_version', 'module', 'github_pr_url', 'assignedDeveloper', 'created_at'
+        ]

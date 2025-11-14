@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from .models import User, Ticket, QAReview
+from .models import User, Ticket, QAReview, DevReport
 from .serializers import (
     UserSerializer,
     UserOutSerializer,
@@ -30,7 +30,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class TicketViewSet(viewsets.ModelViewSet):
-    queryset = Ticket.objects.select_related('submitter', 'assignee', 'qa_reviewer', 'regressor').prefetch_related('qa_reviews').all()
+    queryset = Ticket.objects.select_related('submitter', 'assignee', 'qa_reviewer', 'regressor').prefetch_related('qa_reviews', 'dev_reports').all()
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
@@ -58,6 +58,14 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         payload = DevReportSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
+        data = payload.validated_data
+
+        # 持久化 DevReport 记录
+        DevReport.objects.create(
+            ticket=ticket,
+            assigned_developer=request.user,
+            **data,
+        )
 
         ticket.current_status = 'UNDER_REVIEW'
         ticket.save(update_fields=['current_status', 'updated_at'])
