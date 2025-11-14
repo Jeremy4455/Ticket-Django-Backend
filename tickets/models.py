@@ -112,7 +112,7 @@ class DevReport(models.Model):
     github_pr_url = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    assigend_developer = models.ForeignKey(
+    assigned_developer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         related_name='assigned_dev_reports',
