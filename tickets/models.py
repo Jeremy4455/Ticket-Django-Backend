@@ -98,3 +98,24 @@ class QAReview(models.Model):
         null=True,
         blank=True,
     )
+
+
+class DevReport(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='dev_reports')
+    issue_type = models.CharField(max_length=255, blank=True)
+    root_cause = models.TextField(blank=True)
+    self_test_report = models.TextField(blank=True)
+    self_test_screenshots = models.FileField(upload_to='dev_reports/screenshots/', blank=True, null=True)
+    regression_version = models.CharField(max_length=255, blank=True)
+    module = models.CharField(max_length=255, blank=True)
+    github_pr_url = models.URLField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    assigend_developer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='assigned_dev_reports',
+        null=True,
+        blank=True,
+    )
