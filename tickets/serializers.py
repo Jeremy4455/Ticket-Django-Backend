@@ -107,7 +107,7 @@ class TicketSerializer(serializers.ModelSerializer):
             'id', 'title', 'description',
             'software_name', 'software_version', 'discovered_at',
             'severity', 'module', 'current_status',
-            'submitter', 'assignee', 'qa_reviewer', 'regressor', 'qa_reviews', 'dev_reports',
+            'submitter', 'assignee', 'qa_reviewer', 'regressor', 'qa_reviews', 'dev_reports', 'regression_tests'
             'created_at', 'updated_at'
         ]
 

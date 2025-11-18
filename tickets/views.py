@@ -116,7 +116,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         payload.is_valid(raise_exception=True)
         RegressionTest.objects.create(
             ticket=ticket,
-            tester=request.user,
+            assign_tester=request.user,
             regression_version=payload.validated_data.get('regression_version', ''),
             passed=payload.validated_data['passed'],
             report=payload.validated_data.get('report', '')
