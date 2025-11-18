@@ -119,3 +119,19 @@ class DevReport(models.Model):
         null=True,
         blank=True,
     )
+
+class RegressionTest(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='regression_tests')
+    regression_version = models.CharField(max_length=255, blank=True)
+    passed = models.BooleanField(default=False)
+    report = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    assign_tester = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='performed_regression_tests',
+        null=True,
+        blank=True,
+    )

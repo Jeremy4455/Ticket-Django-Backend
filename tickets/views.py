@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from .models import User, Ticket, QAReview, DevReport
+from .models import User, Ticket, QAReview, DevReport, RegressionTest
 from .serializers import (
     UserSerializer,
     UserOutSerializer,
@@ -111,6 +111,16 @@ class TicketViewSet(viewsets.ModelViewSet):
         # 通常要求为指定的回归测试者
         if ticket.regressor_id and ticket.regressor_id != request.user.id:
             return Response({'detail': 'Only designated tester can operate.'}, status=403)
+
+        payload = RegressionSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        RegressionTest.objects.create(
+            ticket=ticket,
+            tester=request.user,
+            regression_version=payload.validated_data.get('regression_version', ''),
+            passed=payload.validated_data['passed'],
+            report=payload.validated_data.get('report', '')
+        )
 
         payload = RegressionSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
