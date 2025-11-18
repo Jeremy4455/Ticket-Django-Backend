@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .models import User, Ticket, QAReview, DevReport
+from .models import User, Ticket, QAReview, DevReport, RegressionTest
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -87,6 +87,7 @@ class TicketSerializer(serializers.ModelSerializer):
     regressor = UserOutSerializer(read_only=True)
     qa_reviews = serializers.SerializerMethodField(read_only=True)
     dev_reports = serializers.SerializerMethodField(read_only=True)
+    regression_tests = serializers.SerializerMethodField(read_only=True)
 
     def get_qa_reviews(self, obj):
         qs = obj.qa_reviews.order_by('-created_at')
@@ -95,6 +96,10 @@ class TicketSerializer(serializers.ModelSerializer):
     def get_dev_reports(self, obj):
         qs = obj.dev_reports.order_by('-created_at')
         return DevReportOutSerializer(qs, many=True).data
+
+    def get_regression_tests(self, obj):
+        qs = obj.regression_tests.order_by('-created_at')
+        return RegressionOutSerializer(qs, many=True).data
 
     class Meta:
         model = Ticket
@@ -150,7 +155,9 @@ class QAReviewSerializer(serializers.Serializer):
 
 
 class RegressionSerializer(serializers.Serializer):
+    regression_version = serializers.CharField(required=False, allow_blank=True)
     passed = serializers.BooleanField()
+    report = serializers.CharField(required=False, allow_blank=True)
 
 
 class QAReviewOutSerializer(serializers.ModelSerializer):
@@ -171,3 +178,10 @@ class DevReportOutSerializer(serializers.ModelSerializer):
             'id', 'issue_type', 'root_cause', 'self_test_report', 'self_test_screenshots',
             'regression_version', 'module', 'github_pr_url', 'assignedDeveloper', 'created_at'
         ]
+
+class RegressionOutSerializer(serializers.ModelSerializer):
+    tester = UserOutSerializer(source='assign_tester', read_only=True)
+
+    class Meta:
+        model = RegressionTest
+        fields = ['id', 'regression_version', 'passed', 'report', 'tester', 'created_at']
