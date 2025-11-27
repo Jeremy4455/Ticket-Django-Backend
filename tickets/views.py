@@ -4,7 +4,7 @@ from django.shortcuts import render
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from .models import User, Ticket, QAReview, DevReport, RegressionTest
 from .serializers import (
@@ -26,7 +26,11 @@ class UserViewSet(viewsets.ModelViewSet):
             return UserOutSerializer
         return UserSerializer
 
-    permission_classes = [IsAuthenticated]
+    def get_permissions(self):
+        if self.action == 'create':
+            return [AllowAny()]
+
+        return [IsAuthenticated()]
 
 
 class TicketViewSet(viewsets.ModelViewSet):

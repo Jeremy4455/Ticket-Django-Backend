@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -86,6 +87,11 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'ticket_django_backend.wsgi.application'
+
+SIMPLE_JWT = {
+            'ACCESS_TOKEN_LIFETIME': timedelta(days=3650),
+            'REFRESH_TOKEN_LIFETIME': timedelta(days=3650),
+}
 
 
 # Database
